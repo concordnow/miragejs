@@ -29,6 +29,9 @@ declare module "miragejs" {
     /** The request body, if defined */
     readonly requestBody: string;
 
+    /** The request verb */
+    readonly verb: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
+
     /** The URL of the request */
     readonly url: string;
 
@@ -178,12 +181,10 @@ declare module "miragejs/-types" {
 
   // Returns the instantiated type of the given model if it exists in the
   // given registry, or `unknown` otherwise.
-  type InstantiateIfDefined<
-    Registry,
-    ModelName
-  > = ModelName extends keyof Registry
-    ? Instantiate<Registry, ModelName>
-    : unknown;
+  type InstantiateIfDefined<Registry, ModelName> =
+    ModelName extends keyof Registry
+      ? Instantiate<Registry, ModelName>
+      : unknown;
 
   // The type-level equivalent of `Object.assign`
   type Assign<T, U> = U & Omit<T, keyof U>;
@@ -402,6 +403,12 @@ declare module "miragejs/server" {
 
     /** Shutdown the server and stop intercepting network requests. */
     shutdown(): void;
+
+    /** Handle request and return mocked response */
+    handle(request: Request): Response;
+
+    /** Check if the server can handle a given request */
+    canHandle(request: Request): boolean;
   }
 }
 
@@ -513,8 +520,9 @@ declare module "miragejs/orm/schema" {
     >(
       modelName: K,
       data?: Data
-    ): Init &
-      { [K in keyof Init & keyof Data]: Exclude<Init[K], undefined | null> };
+    ): Init & {
+      [K in keyof Init & keyof Data]: Exclude<Init[K], undefined | null>;
+    };
 
     /** Locates one or more existing models of the given type by ID(s). */
     find<K extends keyof Registry>(
@@ -597,8 +605,10 @@ declare module "miragejs/serializer" {
     typeKeyForModel?(model: any): string;
   }
 
-  class JSONAPISerializer extends Serializer
-    implements JSONAPISerializerInterface {
+  class JSONAPISerializer
+    extends Serializer
+    implements JSONAPISerializerInterface
+  {
     static extend(
       param?: JSONAPISerializerInterface | {}
     ): JSONAPISerializerInterface;
